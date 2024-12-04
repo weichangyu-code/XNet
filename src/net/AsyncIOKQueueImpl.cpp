@@ -1,5 +1,8 @@
-#include "AsyncIOImpl.h"
+#include "AsyncIOKQueueImpl.h"
 #include "WatchTimer.h"
+
+
+#if defined(__MACOSX__) || defined(__IPHONEOS__) || defined(__APPLE__)
 
 namespace XNet
 {
@@ -16,8 +19,8 @@ namespace XNet
     {
         stop();
 
-		_epollFd = ::epoll_create(1);
-        if (_epollFd < 0)
+		_kqueue = ::kqueue();
+        if (_kqueue < 0)
         {
             return false;
         }
@@ -27,69 +30,72 @@ namespace XNet
         
     void AsyncIOImpl::stop()
     {
-        if (_epollFd >= 0)
+        if (_kqueue >= 0)
         {
-            ::close(_epollFd);
-            _epollFd = -1;
+            ::close(_kqueue);
+            _kqueue = -1;
         }
     }
 
     void AsyncIOImpl::registerEvent(AsyncIOListener* listener, SOCKET s, bool repeat)
     {
-        if (_epollFd < 0)
+        if (_kqueue < 0)
         {
             return;
         }
 
-        struct epoll_event ev;
-        ev.data.ptr = listener;
-        ev.events = EPOLLIN|EPOLLOUT;
-        if (repeat == false)
-        {
-            ev.events |= EPOLLET;
-        }
-        ::epoll_ctl(_epollFd, EPOLL_CTL_ADD, s, &ev);
+        struct kevent ev[3] = {0};
+        EV_SET(&ev[0], s, EVFILT_READ, EV_ADD | (repeat ? 0 : EV_CLEAR), 0, 0, listener);
+        EV_SET(&ev[1], s, EVFILT_WRITE, EV_ADD | (repeat ? 0 : EV_CLEAR), 0, 0, listener);
+        // EV_SET(&ev[2], s, EVFILT_EXCEPT, EV_ADD | (repeat ? 0 : EV_CLEAR), 0, 0, listener);
+        kevent(_kqueue, ev, 2, nullptr, 0, nullptr);
     }
 
     void AsyncIOImpl::unregisterEvent(SOCKET s)
     {
-        if (_epollFd < 0)
+        if (_kqueue < 0)
         {
             return;
         }
 
-        struct epoll_event ev = {0};
-        ::epoll_ctl(_epollFd, EPOLL_CTL_DEL, s, &ev);
+        struct kevent ev[3] = {0};
+        EV_SET(&ev[0], s, EVFILT_READ, EV_DELETE, 0, 0, nullptr);
+        EV_SET(&ev[1], s, EVFILT_WRITE, EV_DELETE, 0, 0, nullptr);
+        // EV_SET(&ev[2], s, EVFILT_EXCEPT, EV_DELETE, 0, 0, nullptr);
+        kevent(_kqueue, ev, 2, nullptr, 0, nullptr);
     }
 
     void AsyncIOImpl::run(unsigned int timeout, bool& andMore)
     {
-        if (_epollFd < 0)
+        if (_kqueue < 0)
         {
             andMore = false;
             return;
         }
 
-		int num = ::epoll_wait(_epollFd, _events.data(), _events.size(), timeout);
+        struct timespec ts;
+        ts.tv_sec = timeout / 1000;
+        ts.tv_nsec = (timeout % 1000) * 1000000;
+        int num = kevent(_kqueue, nullptr, 0, _events.data(), _events.size(), &ts);
         for (int i = 0;i < num;i++)
         {
-            struct epoll_event& event = _events[i];
+            struct kevent& event = _events[i];
 
-            auto lsner = (AsyncIOListener*)event.data.ptr;
+            auto lsner = (AsyncIOListener*)event.udata;
             if (lsner == nullptr)
             {
                 continue;
             }
             
-            if (event.events & EPOLLIN)
+            if (event.filter == EVFILT_READ)
             {
                 lsner->onEventRead();
             }
-            if (event.events & EPOLLOUT)
+            else if (event.filter == EVFILT_WRITE)
             {
                 lsner->onEventSend();
             }
-			if ((event.events & EPOLLERR) || (event.events & EPOLLHUP))
+			else if (event.filter == EVFILT_EXCEPT)
             {
                 lsner->onEventException();
             }
@@ -109,4 +115,6 @@ namespace XNet
     }
 
 } // namespace XNet
+
+#endif
 

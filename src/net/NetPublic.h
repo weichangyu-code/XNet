@@ -1,3 +1,7 @@
+#pragma once
+
+#include "Network.h"
+
 #include "CommonPublic.h"
 using namespace std;
 

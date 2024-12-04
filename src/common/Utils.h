@@ -15,6 +15,7 @@ namespace XNet
 
     //设置线程名称
     void setThreadName(const char* name, ...);
+    unsigned int getThreadID();
 
     //内存栅栏
 	#define compilerBarrier()	asm volatile("" ::: "memory")

@@ -1,5 +1,4 @@
 #include "DomainResolver.h"
-#include "Network.h"
 #include "NetAPI.h"
 
 namespace XNet

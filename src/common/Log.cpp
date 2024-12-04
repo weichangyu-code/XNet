@@ -6,8 +6,12 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <thread>
-#include <sys/syscall.h>
 #include "Buffer.h"
+#include "Utils.h"
+
+#ifndef __WIN32__
+#include <sys/syscall.h>
+#endif
 
 #ifdef __ANDROID__
 #include <android/log.h>
@@ -65,7 +69,12 @@ namespace XNet
         struct timeval now;
         gettimeofday(&now, nullptr);
         struct tm t = {0};
+#ifdef __WIN32__
+        time_t nowT = now.tv_sec;
+        localtime_s(&t, (const time_t*)&nowT);
+#else
         localtime_r(&now.tv_sec, &t);
+#endif
         char bufTime[64];
         bufTime[sizeof(bufTime) - 1] = 0;
         strftime(bufTime, sizeof(bufTime) - 10, "[%Y-%m-%d %H:%M:%S.", &t);
@@ -82,6 +91,10 @@ namespace XNet
         }
 
         const char* p = strrchr(file, '/');
+        if (p == nullptr)
+        {
+            p = strrchr(file, '\\');
+        }
         if (p != nullptr)
         {
             file = p + 1;
@@ -90,7 +103,7 @@ namespace XNet
         bufPos[sizeof(bufPos) - 1] = 0;
         snprintf(bufPos, sizeof(bufPos) - 1, "[%s:%d]", file, line);
 
-        unsigned int threadId = syscall(SYS_gettid);
+        unsigned int threadId = getThreadID();
         char bufTId[32];
         bufTId[sizeof(bufTId) - 1] = 0;
         snprintf(bufTId, sizeof(bufTId) - 1, "[T:%u]", threadId);

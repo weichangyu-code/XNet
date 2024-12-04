@@ -18,6 +18,7 @@ namespace XNet
         virtual void onEventRead();
         virtual void onEventSend();
         virtual void onEventException();
+        virtual bool isListenSend();
         virtual void onDelayDelete();
 
     public:

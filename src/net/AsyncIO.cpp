@@ -45,7 +45,12 @@ namespace XNet
                 while (_running)
                 {
                     bool andMore = false;
+#ifdef __WIN32__
+                    //windows下使用select模型，检测onsend需要下一个循环，所以不能等待太长
+                    asyncIOThread.io->run(10, andMore);
+#else
                     asyncIOThread.io->run(30, andMore);
+#endif
                     asyncIOThread.timer->run();
                     
                     //队列放最后，确保前面模块和自己扔异步队列可以快速响应

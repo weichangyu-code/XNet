@@ -1,6 +1,5 @@
 #pragma once
 #include "NetPublic.h"
-#include "Network.h"
 
 namespace XNet
 {

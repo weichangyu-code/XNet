@@ -3,6 +3,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <map>
+#include <unordered_map>
 #include <vector>
 #include <list>
 #include <queue>

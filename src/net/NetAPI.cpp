@@ -1,4 +1,5 @@
 #include "NetAPI.h"
+#include "Log.h"
 
 namespace XNet
 {    
@@ -23,7 +24,7 @@ namespace XNet
         int ret = ::setsockopt(sock, level, type, (char*)value, valueLen);
         if (ret < 0)
         {
-            printf("setsockopt %d error %d\n", type, ret);
+            LOGW("setsockopt %d error %d\n", type, ret);
         }
     }
 

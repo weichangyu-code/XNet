@@ -150,6 +150,11 @@ namespace XNet
         }
     }
     
+    bool TCPLink::isListenSend()
+    {
+        return _state == STATE_CONNECTING || _sendQueue.empty() == false;
+    }
+    
     void TCPLink::onDelayDelete()
     {
         close();
@@ -267,7 +272,7 @@ namespace XNet
         {
             _io->unregisterEvent(this, _sock);
             
-            ::close(_sock);
+            ::closesocket(_sock);
             _sock = INVALID_SOCKET;
             _state = STATE_IDLE;
             

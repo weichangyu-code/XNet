@@ -10,8 +10,14 @@
 #include <unistd.h>
 #include <stdarg.h>
 
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__WIN32__)
 #include<sys/prctl.h>
+#endif
+
+#if defined(__WIN32__)
+#include <windows.h>
+#else
+#include <sys/syscall.h>
 #endif
 
 namespace XNet
@@ -57,8 +63,24 @@ namespace XNet
 
 #if defined(__MACOSX__) || defined(__IPHONEOS__) || defined(__APPLE__)
 	    pthread_setname_np(bufName);
+#elif defined(__WIN32__)
+        //
 #else
 	    prctl(PR_SET_NAME, (unsigned long)bufName);
+#endif
+    }
+    
+    unsigned int getThreadID()
+    {
+#if defined(__MACOSX__) || defined(__IPHONEOS__) || defined(__APPLE__)
+        // return syscall(SYS_thread_selfid);
+        uint64_t id = 0;
+        pthread_threadid_np(pthread_self(), &id);
+        return id;
+#elif defined(__WIN32__)
+        return ::GetCurrentThreadId();
+#else
+        return syscall(SYS_gettid);
 #endif
     }
 

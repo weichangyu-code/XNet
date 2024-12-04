@@ -2,6 +2,10 @@
 #include "Network.h"
 #include "AsyncIOListener.h"
 
+#if defined(__MACOSX__) || defined(__IPHONEOS__) || defined(__APPLE__)
+
+#include <sys/event.h>
+
 namespace XNet
 {
     class AsyncIOImpl
@@ -20,11 +24,13 @@ namespace XNet
         void unregisterEvent(SOCKET s);
 
     protected:
-        int _epollFd = -1;
+        int _kqueue = -1;
 
-        vector<struct epoll_event> _events;
+        vector<struct kevent> _events;
     };
 
     typedef shared_ptr<AsyncIOImpl> AsyncIOImplPtr;
     
 } // namespace XNet
+
+#endif

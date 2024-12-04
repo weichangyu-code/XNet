@@ -63,6 +63,11 @@ namespace XNet
         
     }
     
+    bool TCPServer::isListenSend()
+    {
+        return false;
+    }
+    
     void TCPServer::onDelayDelete()
     {
         close();
@@ -128,7 +133,7 @@ namespace XNet
         {
             _io->unregisterEvent(this, _sock);
             
-            ::close(_sock);
+            ::closesocket(_sock);
             _sock = INVALID_SOCKET;
             
             function<void()> onAccept = std::move(_onAccept);

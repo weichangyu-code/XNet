@@ -1,6 +1,7 @@
 #include "net/Network.h"
 #include "net/NetPublic.h"
 #include "net/NetAPI.h"
+#include <sys/epoll.h>
 #include "common/Utils.h"
 #include "common/Log.h"
 using namespace std;

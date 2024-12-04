@@ -1,9 +1,8 @@
 #include "NetCore.h"
-#include "Network.h"
 #include "NetAPI.h"
 #include "net/NetStatistics.h"
-#include "common/Log.h"
 #include "Utils.h"
+#include "Log.h"
 
 namespace XNet
 {
@@ -19,7 +18,13 @@ namespace XNet
 
     bool NetCore::start(int threadNum)
     {
+#ifdef __WIN32__
+		WSADATA wsaData;
+		WORD wVersionRequested = MAKEWORD(2, 2);
+		WSAStartup(wVersionRequested, &wsaData);
+#else
 		signal(SIGPIPE, SIG_IGN);
+#endif
         LOGI("sizeof(void*)=%d;__cplusplus=%d;clock=%lld", sizeof(void*), __cplusplus, getMSClockEx());
         
         if (_asyncIO->start(threadNum) == false)
@@ -53,7 +58,7 @@ namespace XNet
     
     void NetCore::dump()
     {
-        printf(
+        LOGI(
         "NetCore:\n"
         "   tcpLinkNum=%d\n"
         "   bufferSize=%d\n"

@@ -1,8 +1,9 @@
 #include "Crash.h"
+#include "Log.h"
 #include <signal.h>
 #include <stdio.h>
 
-#ifdef __x86_64__
+#if defined(__x86_64__) && defined(__linux__)
 #include <execinfo.h>
 #endif
 
@@ -10,26 +11,28 @@ namespace XNet
 {
     static void handleCrash(int sig)
     {
-        printf("handleCrash %d\n", sig);
+        LOGW("handleCrash %d\n", sig);
         dumpBacktrace();
+        exit(1);
     }
     
     void dumpBacktrace()
     {
-#ifdef __x86_64__
+#if defined(__x86_64__) && defined(__linux__)
         void* buf[1024];
         int nptrs = backtrace(buf, 1024);
         char **strings = backtrace_symbols(buf, nptrs);
         for (int i = 0; i < nptrs; i++) 
         {
-            printf("%s\n", strings[i]);
+            LOGW("%s\n", strings[i]);
         }
+        free(strings);
 #endif
     }
     
     void setupHandleCrash()
     {
-#ifdef __x86_64__
+#if defined(__x86_64__) && defined(__linux__)
         signal(SIGSEGV, handleCrash);
         signal(SIGABRT, handleCrash);
         signal(SIGFPE, handleCrash);
