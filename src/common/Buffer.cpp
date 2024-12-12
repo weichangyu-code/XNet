@@ -18,7 +18,7 @@ namespace XNet
     
     BufferPtr Buffer::create(unsigned int capacity)
     {
-        char* p = new char[sizeof(Buffer) + capacity];
+        char* p = new char[sizeof(Buffer) + capacity];          //缓存多了4个字节。后续可以用于'\0'填充，避免字符串越界
         Buffer* buf = new (p) Buffer(capacity);
         return BufferPtr(buf);
     }
@@ -39,6 +39,7 @@ namespace XNet
         }
         memcpy(_data + _size, data, size);
         _size += size;
+        _data[_size] = '\0';                        //确保以0结尾，如果存放字符串，避免越界
         return true;
     }
         
@@ -49,6 +50,7 @@ namespace XNet
             return false;
         }
         _size += size;
+        _data[_size] = '\0';                        //确保以0结尾，如果存放字符串，避免越界
         return true;
     }
         

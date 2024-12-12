@@ -8,6 +8,7 @@
 #include <thread>
 #include "Buffer.h"
 #include "Utils.h"
+#include <sstream>
 
 #ifndef __WIN32__
 #include <sys/syscall.h>
@@ -84,6 +85,7 @@ namespace XNet
         switch (level)
         {
         case LOG_LEVEL_DEBUG:levelString = "[DEBUG]";break;
+        case LOG_LEVEL_TRACE:levelString = "[TRACE]";break;
         case LOG_LEVEL_INFO:levelString = "[INFO]";break;
         case LOG_LEVEL_WARN:levelString = "[WARN]";break;
         case LOG_LEVEL_ERROR:levelString = "[ERROR]";break;
@@ -112,6 +114,18 @@ namespace XNet
         bufModule[sizeof(bufModule) - 1] = 0;
         snprintf(bufModule, sizeof(bufModule) - 1, "[%s]", name);
 
+        //拼接
+        std::stringstream ss;
+        ss << bufModule << bufTime << bufTId << bufPos << levelString << bufFmt << std::endl;
+        std::string s = ss.str();
+        
+        //回调
+        if (_cb)
+        {
+            _cb(s.c_str());
+            return;
+        }
+
         // 打印到控制台
 #ifdef __ANDROID__
         int androidLevel = ANDROID_LOG_DEBUG;
@@ -122,11 +136,9 @@ namespace XNet
             case LOG_LEVEL_WARN:androidLevel = ANDROID_LOG_WARN;break;
             case LOG_LEVEL_ERROR:androidLevel = ANDROID_LOG_ERROR;break;
         }
-        __android_log_print(androidLevel, bufModule, "%s%s%s%s%s", bufTime, bufTId, bufPos, levelString, bufFmt);
+        __android_log_print(androidLevel, bufModule, "%s", s.c_str());
 #else
-        _mtx.lock();
-        std::cout << bufModule << bufTime << bufTId << bufPos << levelString << bufFmt << std::endl;
-        _mtx.unlock();
+        std::cout << s;
 #endif
         
         // 打印到文件
@@ -149,7 +161,35 @@ namespace XNet
                 _logFile.open(_filePath.c_str(), std::ios_base::app | std::ios_base::out | std::ios_base::binary);
             }
 
-            _logFile << bufModule << bufTime << bufTId << bufPos << levelString << bufFmt << std::endl;
+            _logFile << s;
         }
+    }
+
+    void Log::setCB(std::function<void(const char*)> cb)
+    {
+        _cb = cb;
+    }
+        
+    TraceLog::TraceLog(const char* module, const char* file, const char* func, unsigned int line, const char* fmt, ...)
+    {
+        _module = module;
+        _file = file;
+        _func = func;
+        _line = line;
+        
+        char bufFmt[1024];
+        bufFmt[sizeof(bufFmt) - 1] = 0;
+        va_list va;
+        va_start(va, fmt);
+        vsnprintf(bufFmt, sizeof(bufFmt) - 1, fmt, va);
+        va_end(va);
+        _fmt = bufFmt;
+
+        g_log.write(LOG_LEVEL_TRACE, _module, _file, _line, "[%s:%u][begin]%s", _func, _line, _fmt.c_str());
+    }
+        
+    TraceLog::~TraceLog()
+    {
+        g_log.write(LOG_LEVEL_TRACE, _module, _file, _line, "[%s:%u][end]%s", _func, _line, _fmt.c_str());
     }
 }
